@@ -593,6 +593,8 @@ class VideoManager():
                 face_kps = kpss[i]
 
             face_emb = self.func_w_test('recognize',  self.recognize, img, face_kps)
+            if not change_parameters:
+                face_kps = self._smooth_kps(face_emb, face_kps)
             ret.append([face_kps, face_emb])
         
         if ret:
