@@ -77,7 +77,8 @@ for _name, _mod in [
 ]:
     sys.modules.setdefault(_name, _mod)
 
-sys.path.insert(0, 'rope')
+import os as _os
+sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), '..', 'rope'))
 import VideoManager as vm_module
 from VideoManager import VideoManager
 
@@ -90,9 +91,10 @@ KPS_SHAPE = (5, 2)
 
 
 def _unit_emb(idx):
-    """Unit-norm embedding; each idx maps to a unique orthogonal direction."""
+    """Unit-norm embedding; idx must be in [0, EMB_DIM). Each idx is orthogonal."""
+    assert 0 <= idx < EMB_DIM, f"idx {idx} out of range [0, {EMB_DIM})"
     emb = np.zeros(EMB_DIM, dtype=np.float32)
-    emb[idx % EMB_DIM] = 1.0
+    emb[idx] = 1.0
     return emb
 
 
