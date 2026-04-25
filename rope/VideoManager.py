@@ -637,14 +637,17 @@ class VideoManager():
 
     def _smooth_kps(self, face_emb, raw_kps):
         with lock:
-            best_idx = -1
-            best_dist = float('inf')
-            for i, entry in enumerate(self.kps_smooth_state):
-                dist = self.findCosineDistance(face_emb, entry['embedding'])
-                if dist < best_dist:
-                    best_dist = dist
-                    best_idx = i
+            state_snapshot = list(self.kps_smooth_state)
 
+        best_idx = -1
+        best_dist = float('inf')
+        for i, entry in enumerate(state_snapshot):
+            dist = self.findCosineDistance(face_emb, entry['embedding'])
+            if dist < best_dist:
+                best_dist = dist
+                best_idx = i
+
+        with lock:
             if best_idx >= 0 and best_dist < KPS_SMOOTH_MATCH_DIST:
                 prev_kps = self.kps_smooth_state[best_idx]['smoothed_kps']
                 smoothed = KPS_SMOOTH_ALPHA * raw_kps + (1 - KPS_SMOOTH_ALPHA) * prev_kps
