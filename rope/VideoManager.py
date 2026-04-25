@@ -189,6 +189,7 @@ class VideoManager():
             self.add_action("set_slider_length",self.video_frame_total-1)
             self.kps_cache = {}
             self.kps_cache_order = []
+            self.kps_smooth_state = []
 
         self.capture.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)        
         success, image = self.capture.read() 
@@ -213,6 +214,7 @@ class VideoManager():
         self.is_image_loaded = True
         self.kps_cache = {}
         self.kps_cache_order = []
+        self.kps_smooth_state = []
         
     # def load_null(self):
         # self.is_video_loaded = False
