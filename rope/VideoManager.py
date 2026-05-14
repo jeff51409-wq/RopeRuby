@@ -1271,8 +1271,31 @@ class VideoManager():
         
         diff = diff.permute(2,0,1)
 
-        return diff    
-    
+        return diff
+
+    def apply_auto_color(self, swap, original_face, amount):
+        swap_np = swap.permute(1, 2, 0).cpu().numpy().astype(np.uint8)
+        orig_np = original_face.permute(1, 2, 0).cpu().numpy().astype(np.uint8)
+
+        swap_lab = cv2.cvtColor(swap_np, cv2.COLOR_RGB2LAB).astype(np.float32)
+        orig_lab = cv2.cvtColor(orig_np, cv2.COLOR_RGB2LAB).astype(np.float32)
+
+        result_lab = swap_lab.copy()
+        for c in range(3):
+            s_std = swap_lab[:, :, c].std() + 1e-6
+            o_std = orig_lab[:, :, c].std() + 1e-6
+            result_lab[:, :, c] = (
+                (swap_lab[:, :, c] - swap_lab[:, :, c].mean()) / s_std * o_std
+                + orig_lab[:, :, c].mean()
+            )
+
+        alpha = amount / 100.0
+        blended = alpha * result_lab + (1.0 - alpha) * swap_lab
+        blended = np.clip(blended, 0, 255).astype(np.uint8)
+
+        result_rgb = cv2.cvtColor(blended, cv2.COLOR_LAB2RGB)
+        return torch.from_numpy(result_rgb).permute(2, 0, 1).to(device)
+
     def apply_codeformer(self, swapped_face_upscaled, parameters):
         # Set up Transformation
         dst = self.arcface_dst * 4.0
