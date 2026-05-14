@@ -67,14 +67,18 @@ class GUI(tk.Tk):
         self.arcface_dst = np.array( [[38.2946, 51.6963], [73.5318, 51.5014], [56.0252, 71.7366], [41.5493, 92.3655], [70.7299, 92.2041]], dtype=np.float32)   
 
         self.json_dict =    {
-                            "source videos":    None, 
-                            "source faces":     None, 
-                            "saved videos":     None, 
-                            "threads":          1, 
+                            "source videos":    None,
+                            "source faces":     None,
+                            "saved videos":     None,
+                            "threads":          1,
+                            "presets":          {},
                             'dock_win_geom':    [980, 1020, self.winfo_screenwidth()/2-400, self.winfo_screenheight()/2-510],
                             'undock_win_geom':  [980, 517, self.winfo_screenwidth()/2-400, self.winfo_screenheight()/2-510],
                             'player_geom':      [1024, 768, self.winfo_screenwidth()/2-400, self.winfo_screenheight()/2-510],
                             }
+
+        self.preset_var = tk.StringVar()
+        self.preset_combo = None
 
         self.marker =  {
                         'frame':        '0',
@@ -480,6 +484,26 @@ class GUI(tk.Tk):
         self.vram_label = tk.Label(self.info_bar_frame, self.label_style, text='', anchor='e')
         self.vram_label.grid(row=0, column=3, sticky='E', padx=(0, 8))
 
+        self.build_preset_bar()
+
+    def build_preset_bar(self):
+        preset_frame = tk.Frame(self.options_frame)
+        preset_frame.pack(side=tk.TOP, fill=tk.X, padx=8, pady=2)
+
+        tk.Label(preset_frame, text='預設:').pack(side=tk.LEFT)
+
+        self.preset_combo = ttk.Combobox(
+            preset_frame, textvariable=self.preset_var, width=20, state='readonly'
+        )
+        self.preset_combo.pack(side=tk.LEFT, padx=4)
+
+        tk.Button(preset_frame, text='存', width=3,
+                  command=self.save_preset).pack(side=tk.LEFT)
+        tk.Button(preset_frame, text='載', width=3,
+                  command=self.load_preset).pack(side=tk.LEFT, padx=2)
+        tk.Button(preset_frame, text='刪', width=3,
+                  command=self.delete_preset).pack(side=tk.LEFT)
+
     def callback(self, url):
         webbrowser.open_new_tab(url)
  
@@ -610,7 +634,11 @@ class GUI(tk.Tk):
         try:
             self.json_dict["player_geom"] = json_object["player_geom"]
         except:
-            self.json_dict["player_geom"] = self.json_dict["player_geom"]              
+            self.json_dict["player_geom"] = self.json_dict["player_geom"]
+
+        # Populate preset dropdown from saved presets
+        if self.preset_combo is not None:
+            self._preset_refresh_combo()
 
         self.bind('<Key>', lambda event: self.key_event(event))
         self.bind('<space>', lambda event: self.key_event(event))
