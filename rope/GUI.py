@@ -488,7 +488,7 @@ class GUI(tk.Tk):
 
     def build_preset_bar(self):
         preset_frame = tk.Frame(self.options_frame)
-        preset_frame.pack(side=tk.TOP, fill=tk.X, padx=8, pady=2)
+        preset_frame.grid(row=2, column=0, sticky='EW', padx=8, pady=2)
 
         tk.Label(preset_frame, text='預設:').pack(side=tk.LEFT)
 
