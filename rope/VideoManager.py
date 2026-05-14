@@ -385,8 +385,11 @@ class VideoManager():
                     # self.temp_file]  
             
             # self.sp = subprocess.Popen(args, stdin=subprocess.PIPE)
-            size = (frame_width, frame_height)
-            self.sp = cv2.VideoWriter(self.temp_file,  cv2.VideoWriter_fourcc(*'mp4v') , self.fps, size) 
+            enhance_scale = 1
+            if self.parameters and self.parameters.get('FrameEnhanceState'):
+                enhance_scale = [2, 4][self.parameters.get('FrameEnhanceMode', 0)]
+            size = (frame_width * enhance_scale, frame_height * enhance_scale)
+            self.sp = cv2.VideoWriter(self.temp_file, cv2.VideoWriter_fourcc(*'mp4v'), self.fps, size)
       
     # @profile
     def process(self):
@@ -506,11 +509,18 @@ class VideoManager():
         if success:
             target_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB)
             if not self.swap:
-                temp = [target_image, frame_number]
-            
+                processed = target_image
             else:
-                temp = [self.swap_video(target_image, frame_number, False), frame_number]
-            
+                processed = self.swap_video(target_image, frame_number, False)
+
+            if self.parameters and self.parameters.get('FrameEnhanceState') and self.realesrgan_model:
+                processed = self.func_w_test(
+                    'realesrgan', self.apply_realesrgan,
+                    processed, self.parameters.get('FrameEnhanceMode', 0)
+                )
+
+            temp = [processed, frame_number]
+
             for item in self.process_qs:
                 if item['FrameNumber'] == frame_number:
                     item['ProcessedFrame'] = temp[0]
