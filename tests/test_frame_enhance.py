@@ -56,8 +56,10 @@ for mod_name, mod in [
     ('torchvision.transforms.functional', _tv_tr_func),
     ('torchvision.ops', _tv_ops), ('cv2', _cv2),
 ]:
-    sys.modules[mod_name] = mod
+    sys.modules.setdefault(mod_name, mod)
 
+import os as _os
+sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), '..'))
 from rope.VideoManager import VideoManager
 
 # ---- mock ONNX model ----
