@@ -33,6 +33,7 @@ onnxruntime.set_default_logger_severity(4)
 # from itertools import combinations
 
 lock=threading.Lock()
+realesrgan_lock=threading.Lock()
 
 KPS_SMOOTH_ALPHA = 0.6        # EWMA weight for incoming frame; 1.0 = no smoothing
 KPS_SMOOTH_MATCH_DIST = 0.3   # cosine distance threshold to identify same face
@@ -1320,8 +1321,13 @@ class VideoManager():
         h, w = frame.shape[:2]
         dev = next(self.realesrgan_model.parameters()).device
         inp = torch.from_numpy(frame).permute(2, 0, 1).unsqueeze(0).float().div(255).to(dev)
-        with torch.no_grad():
-            output = self.realesrgan_model(inp)
+        with realesrgan_lock:
+            if dev.type == 'cuda':
+                torch.cuda.synchronize()
+            with torch.no_grad():
+                output = self.realesrgan_model(inp)
+            if dev.type == 'cuda':
+                torch.cuda.synchronize()
         output = output.squeeze(0).permute(1, 2, 0).clamp(0, 1).mul(255).byte().cpu().numpy()
 
         if mode == 0:  # x2: downscale 4x result to 2x
