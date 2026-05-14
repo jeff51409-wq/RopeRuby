@@ -954,8 +954,65 @@ class GUI(tk.Tk):
 
     def clear_faces(self):
         self.target_faces = []
-        self.found_faces_canvas.delete("all")    
-   
+        self.found_faces_canvas.delete("all")
+
+    def _preset_read_json(self):
+        with open('data.json', 'r') as f:
+            return json.load(f)
+
+    def _preset_write_json(self, data):
+        with open('data.json', 'w') as f:
+            json.dump(data, f)
+
+    def save_preset(self, name=None):
+        if name is None:
+            from tkinter import simpledialog
+            name = simpledialog.askstring('存預設', '預設名稱:')
+        if not name:
+            return
+        data = self._preset_read_json()
+        if 'presets' not in data:
+            data['presets'] = {}
+        data['presets'][name] = {k: v for k, v in self.parameters.items()
+                                  if not callable(v)}
+        self._preset_write_json(data)
+        self._preset_refresh_combo()
+
+    def load_preset(self, name=None):
+        if name is None:
+            name = self.preset_var.get()
+        if not name:
+            return
+        data = self._preset_read_json()
+        preset = data.get('presets', {}).get(name, {})
+        for key, value in preset.items():
+            if key in self.parameters:
+                self.parameters[key] = value
+        for key in list(self.parameters.keys()):
+            if key.endswith('State'):
+                param_name = key[:-5]
+                if param_name + 'Button' in self.param_const:
+                    self.update_ui_button(param_name)
+        self.add_action('parameters', self.parameters, True)
+
+    def delete_preset(self):
+        name = self.preset_var.get()
+        if not name:
+            return
+        data = self._preset_read_json()
+        data.get('presets', {}).pop(name, None)
+        self._preset_write_json(data)
+        self._preset_refresh_combo()
+
+    def _preset_refresh_combo(self):
+        data = self._preset_read_json()
+        names = sorted(data.get('presets', {}).keys())
+        self.preset_combo['values'] = names
+        if names:
+            self.preset_combo.set(names[0])
+        else:
+            self.preset_combo.set('')
+
     # toggle the target faces button and make assignments        
     def toggle_found_faces_buttons_state(self, button):  
         # Turn all Target faces off
