@@ -514,10 +514,13 @@ class VideoManager():
                 processed = self.swap_video(target_image, frame_number, False)
 
             if self.parameters and self.parameters.get('FrameEnhanceState') and self.realesrgan_model:
-                processed = self.func_w_test(
-                    'realesrgan', self.apply_realesrgan,
-                    processed, self.parameters.get('FrameEnhanceMode', 0)
-                )
+                try:
+                    processed = self.func_w_test(
+                        'realesrgan', self.apply_realesrgan,
+                        processed, self.parameters.get('FrameEnhanceMode', 0)
+                    )
+                except Exception as e:
+                    print(f'[FrameEnhance] error: {e}')
 
             temp = [processed, frame_number]
 
@@ -1315,16 +1318,11 @@ class VideoManager():
     def apply_realesrgan(self, frame, mode):
         # frame: H×W×3 uint8 RGB numpy array; mode: 0=x2, 1=x4
         h, w = frame.shape[:2]
-        inp = frame.astype(np.float32) / 255.0
-        inp = np.transpose(inp, (2, 0, 1))[np.newaxis, ...]  # 1×3×H×W
-
-        output = self.realesrgan_model.run(
-            None, {self._realesrgan_input_name: inp}
-        )[0]  # 1×3×(H*4)×(W*4)
-
-        output = np.squeeze(output)               # 3×(H*4)×(W*4)
-        output = np.transpose(output, (1, 2, 0))  # (H*4)×(W*4)×3
-        output = np.clip(output * 255, 0, 255).astype(np.uint8)
+        dev = next(self.realesrgan_model.parameters()).device
+        inp = torch.from_numpy(frame).permute(2, 0, 1).unsqueeze(0).float().div(255).to(dev)
+        with torch.no_grad():
+            output = self.realesrgan_model(inp)
+        output = output.squeeze(0).permute(1, 2, 0).clamp(0, 1).mul(255).byte().cpu().numpy()
 
         if mode == 0:  # x2: downscale 4x result to 2x
             output = cv2.resize(output, (w * 2, h * 2), interpolation=cv2.INTER_LANCZOS4)

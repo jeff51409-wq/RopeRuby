@@ -130,9 +130,7 @@ def coordinator():
                     vm.face_parsing_model, vm.face_parsing_tensor = load_face_parser_model()
             if action[0][1]['FrameEnhanceState']:
                 if not vm.realesrgan_model:
-                    session, input_name = load_realesrgan_model()
-                    vm.realesrgan_model = session
-                    vm._realesrgan_input_name = input_name
+                    vm.realesrgan_model = load_realesrgan_model()
             vm.parameters = action[0][1]
             action.pop(0) 
         elif action [0][0] == "markers":
@@ -261,14 +259,13 @@ def load_clip_model():
     return clip_session 
 
 def load_realesrgan_model():
-    sess_options = onnxruntime.SessionOptions()
-    session = onnxruntime.InferenceSession(
-        "./models/RealESRGAN_x4plus.onnx",
-        sess_options,
-        providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
-    )
-    input_name = session.get_inputs()[0].name
-    return session, input_name
+    from basicsr.archs.rrdbnet_arch import RRDBNet
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+    checkpoint = torch.load('./models/RealESRGAN_x4plus.pth', map_location='cpu')
+    model.load_state_dict(checkpoint['params_ema'])
+    model.eval().to(device)
+    return model
 
 def load_GPEN_512_model():
     session = onnxruntime.InferenceSession( "./models/GPEN-BFR-512.onnx", providers=["CUDAExecutionProvider", 'CPUExecutionProvider'])
