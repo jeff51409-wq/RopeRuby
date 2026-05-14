@@ -840,6 +840,10 @@ class VideoManager():
         gauss = transforms.GaussianBlur(parameters['BlurAmount'][0]*2+1, (parameters['BlurAmount'][0]+1)*0.2)
         swap_mask = gauss(swap_mask)  
         
+        # Auto LAB color match: transfer original face skin tone to swapped face
+        if parameters['AutoColorState']:
+            swap = self.func_w_test('auto_color', self.apply_auto_color, swap, original_face_512, parameters['AutoColorAmount'][0])
+
         # Apply color corerctions
         if parameters['ColorState']:
             swap = swap.permute(1, 2, 0).type(torch.float32)
