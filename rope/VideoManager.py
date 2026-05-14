@@ -139,6 +139,8 @@ class VideoManager():
         self.perf_test = False
 
         self.resnet_model = []
+        self.realesrgan_model = []
+        self._realesrgan_input_name = 'input'
         self.detection_model = []
         self.recognition_model = []
         self.syncvec = torch.empty((1,1), dtype=torch.float32, device=device)
@@ -1299,6 +1301,25 @@ class VideoManager():
 
         result_rgb = cv2.cvtColor(blended, cv2.COLOR_LAB2RGB)
         return torch.from_numpy(result_rgb).permute(2, 0, 1).to(device)
+
+    def apply_realesrgan(self, frame, mode):
+        # frame: H×W×3 uint8 RGB numpy array; mode: 0=x2, 1=x4
+        h, w = frame.shape[:2]
+        inp = frame.astype(np.float32) / 255.0
+        inp = np.transpose(inp, (2, 0, 1))[np.newaxis, ...]  # 1×3×H×W
+
+        output = self.realesrgan_model.run(
+            None, {self._realesrgan_input_name: inp}
+        )[0]  # 1×3×(H*4)×(W*4)
+
+        output = np.squeeze(output)               # 3×(H*4)×(W*4)
+        output = np.transpose(output, (1, 2, 0))  # (H*4)×(W*4)×3
+        output = np.clip(output * 255, 0, 255).astype(np.uint8)
+
+        if mode == 0:  # x2: downscale 4x result to 2x
+            output = cv2.resize(output, (w * 2, h * 2), interpolation=cv2.INTER_LANCZOS4)
+
+        return output
 
     def apply_codeformer(self, swapped_face_upscaled, parameters):
         # Set up Transformation
